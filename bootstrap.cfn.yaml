@@ -1,0 +1,123 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "(VoiceRoboticsWorkshop) - Use voice to interact with a virtual robot in a simulated world with the Alexa Skills Kit and AWS RoboMaker"
+
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: "10.168.0.0/16"
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: VoiceRoboticsWorkshop
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: VoiceRoboticsWorkshop
+
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      CidrBlock: 10.168.11.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: VoiceRoboticsWorkshop Public Subnet (AZ1)
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 1, !GetAZs  '' ]
+      CidrBlock: 10.168.10.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: VoiceRoboticsWorkshop Public Subnet (AZ2)
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: VoiceRoboticsWorkshop Public Routes
+
+  DefaultPublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet1
+
+  PublicSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet2
+
+  IoTPolicy:
+    Type: AWS::IoT::Policy
+    Properties: 
+      PolicyDocument: !Sub '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iot:Publish","iot:Receive"],"Resource":["arn:aws:iot:us-west-2:${AWS::AccountId}:topic/voice_command"]},{"Effect":"Allow","Action":["iot:Subscribe"],"Resource":["arn:aws:iot:us-west-2:${AWS::AccountId}:topicfilter/voice_command"]},{"Effect":"Allow","Action":["iot:Connect"],"Resource":["arn:aws:iot:us-west-2:${AWS::AccountId}:client/VoiceRoboticsWorkshop-*"]}]  }'
+      PolicyName: VoiceRoboticsWorkshopPolicy
+
+  S3Bucket:
+    Type: AWS::S3::Bucket
+
+  IAMExcutionRole:
+    Type: AWS::IAM::Role
+    Properties: 
+      AssumeRolePolicyDocument: {"Version": "2012-10-17","Statement": [{"Effect": "Allow","Principal": {"Service": "robomaker.amazonaws.com"},"Action": "sts:AssumeRole"}]}
+      RoleName: VoiceRoboticsWorkshopExecutionRole
+
+  IAMExecutionPolicy:
+    Type: AWS::IAM::Policy
+    Properties: 
+      PolicyDocument: !Sub '{"Version":"2012-10-17","Statement":[{"Action":"s3:ListBucket","Resource":["arn:aws:s3:::${S3Bucket}","arn:aws:s3:::voiceroboticsworkshop/simulation/"],"Effect":"Allow"},{"Action":["s3:Get*","s3:List*"],"Resource":["arn:aws:s3:::${S3Bucket}/*","arn:aws:s3:::voiceroboticsworkshop/*"],"Effect":"Allow"},{"Action":"s3:Put*","Resource":["arn:aws:s3:::${S3Bucket}/*"],"Effect":"Allow"},{"Action":["logs:CreateLogGroup","logs:CreateLogStream","logs:PutLogEvents","logs:DescribeLogStreams"],"Resource":["arn:aws:logs:*:${AWS::AccountId}:log-group:/aws/robomaker/SimulationJobs*"],"Effect":"Allow"}]}'
+      PolicyName: VoiceRoboticsWorkshopExecutionPolicy
+      Roles: [!Ref IAMExcutionRole]
+
+Outputs:
+  VPC:
+    Description: A reference to the created VPC
+    Value: !Ref VPC
+
+  PublicSubnets:
+    Description: A list of the public subnets
+    Value: !Join [ ",", [ !Ref PublicSubnet1, !Ref PublicSubnet2 ]]
+
+  PublicSubnet1:
+    Description: A reference to the public subnet in the 1st Availability Zone
+    Value: !Ref PublicSubnet1
+
+  PublicSubnet2:
+    Description: A reference to the public subnet in the 2nd Availability Zone
+    Value: !Ref PublicSubnet2
+
+  S3Bucket:
+    Description: A reference to the S3 bucket that was created for you to store your robot bundle
+    Value: !Ref S3Bucket
+
+  IAMExcutionRole:
+    Description: The IAM role you'll need to specify when creating a simulation job in AWS RoboMaker
+    Value: VoiceRoboticsWorkshopExecutionRole

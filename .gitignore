@@ -1,0 +1,9 @@
+.vscode/*
+simulation_ws/build/
+simulation_ws/bundle/
+simulation_ws/log/
+simulation_ws/install/
+robot_ws/build/
+robot_ws/bundle/
+robot_ws/log/
+robot_ws/install/

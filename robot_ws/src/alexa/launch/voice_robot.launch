@@ -1,0 +1,11 @@
+<launch>
+  <arg name="use_sim_time" default="true"/>
+  <param name="use_sim_time" value="$(arg use_sim_time)"/>
+
+  <node name="listener" pkg="alexa" type="listener.py" output="screen">
+	    <env name="ENDPOINT" value="$(env ENDPOINT)" />
+	    <env name="CERTS_LOCATION" value="$(find alexa)/certs/" />
+  </node>
+
+</launch>
+
