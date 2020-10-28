@@ -9,7 +9,7 @@ Welcome to the Voice Robotics Workshop! In this workshop, you will learn how to 
     * AWS IoT Core
     * AWS RoboMaker
 
-To begin, please follow the workshop guide at [https://alexa.design/voice-robotics-workshop](https://alexa.design/voice-robotics-workshop).
+To begin the workshop, please follow the [workshop guide.](guide/README.md)
 
 ## License
 
